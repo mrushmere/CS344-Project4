@@ -18,12 +18,14 @@
 // Function Prototypes
 int setSocket(int port);
 int connectSocket(int socket);
-char* encode(char *key, char *file);
+char* encode(char *key, char *file, char* cypher, int msgLen);
+
 
 
 int main(int argc, char *argv[]) {
 	// If more than one argument provided, print error message
 	int portNo, sockfd;
+	int keyLen, msgLen;
 	
 	if(argc != 2) {
 		printf("Proper usage: opt_enc_d [listening port]\n");
@@ -36,11 +38,9 @@ int main(int argc, char *argv[]) {
 	while(1){
 		// Set buffers and variables
 		char command[512];
-		char keyBuffer[512];
-		char fileBuffer[512];
-		memset(keyBuffer, '\0', 512);
-		memset(fileBuffer, '\0', 512);
+		char buffer[512];
 		memset(command, '\0', 512);
+		memset(buffer, '\0', 512);
 		int clientSocket;
 		int n;
 		char *ok = "OK";
@@ -53,27 +53,65 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 
-		// recceive the key
-		if(read(clientSocket, fileBuffer, 512) < 0) {
+		// recceive the command
+		if(read(clientSocket, buffer, 512) < 0) {
 			perror("reading filename");
 		}
-		printf("the recieved command was %s\n", fileBuffer);
+		printf("the recieved command was %s\n", buffer);
+
+		// Parse the command
+		char *temp;
+		temp = strtok(buffer, " \n\0");
+		msgLen = atoi(temp);
+		temp = strtok(NULL, " \n\0");
+		keyLen = atoi(temp);
+
+		// Allocate memory to recieve the message and the key
+		char *msgBuff = malloc(msgLen * sizeof(char));
+		char *keyBuff = malloc(keyLen * sizeof(char)); 
+		char *cypher = malloc((msgLen + 1) * sizeof(char));
 
 		// send response
+		if(write(clientSocket, ok, sizeof(ok)) < 0) {
+			perror("reading file sizes");
+		}
+
+		// Get the message
+		char buf[512];
+		memset(buf, '\0', 512);
+		if(read(clientSocket, buf, 512) < 0) {
+			perror("reading message");
+		}
+		strcpy(msgBuff, buf);
+
+		printf("The message recieved is:\n");
+		printf("%s\n", msgBuff);
+
+		// Send confirmation
 		if(write(clientSocket, ok, sizeof(ok)) < 0) {
 			perror("reading filename");
 		}
 
-		// Get the file
+		// Get the key
+		memset(buf, '\0', 512);
+		if(read(clientSocket, buf, 512) < 0) {
+			perror("reading message");
+		}
+		strcpy(keyBuff, buf);
+		printf("the key received is:\n");
+		printf("%s", keyBuff);
 
-		// send ok response
 
-		// get the key
+		//printf("the first char in the key is %c", keyBuff[0]);
 
-		// send ok response
+
+		// Send confirmation
+		if(write(clientSocket, ok, sizeof(ok)) < 0) {
+			perror("reading filename");
+		}
 
 		// call function to convert the text
-
+		encode(keyBuff, msgBuff, cypher, msgLen);
 		// Send back the cyphertext
 
 	}
@@ -130,4 +168,29 @@ int connectSocket(int socket) {
 	else {
 		return clientSocket;
 	}
+}
+
+char* encode(char* key, char* file, char* cypher, int msgLen) {
+	//char *cur;
+	char temp1, temp2, temp3;
+	int i, let1, let2, letCode;
+	for(i = 0; i < msgLen; i++) {
+		temp1 = key[i];
+		let1 = (int)temp1;
+		temp2 = file[i];
+		let2 = (int)temp2;
+		letCode = (let1 + let2) % 27;
+		if(letCode == 0) {
+			letCode = 32;
+		}
+		else {
+			letCode += 64;
+		}
+		printf("%d\n", letCode);
+		temp3 = (char)letCode;
+		cypher[i] = temp3;
+
+	}
+	printf("cypher: %s\n", cypher);
+
 }

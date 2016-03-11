@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
 	bzero(command, 512);
 	struct stat buffer;
 	size_t msgLen, keyLen;
-	FILE *fp;
 
 	// Set the server to localhost
 	// hardcode eos-class server because the program should not be run anywhere else
@@ -116,12 +115,64 @@ int main(int argc, char *argv[]) {
 	if(write(sockfd, command, 512)) {
 		perror("writing command");
 	}
-	bzero(res, 4);
 
+	bzero(res, 4);
 	if(read(sockfd, res, 4) < 0) {
 		perror("reading response");
 	}
-	printf("the response is: %s\n", res);
+	
+
+	// Open the file to be sent
+	FILE* fp;
+	if((fp = fopen(msgName, "r")) == NULL) {
+		printf("Message file not found\n");
+		return;
+	}
+
+	// send the message file
+	char buf[512];
+	memset(buf, '\0', 512);
+	int readBytes;
+	do {
+		if((readBytes = fread(buf, 1, 512, fp)) < 0) {
+			perror("reading from file");
+		}
+		if(write(sockfd, buf, readBytes) < 0) {
+			perror("writing to client");
+		}
+	} while(readBytes > 0);
+	fclose(fp);
+
+	// check that the message was read in
+	bzero(res, 4);
+	if(read(sockfd, res, 4) < 0) {
+		perror("reading response");
+	}
+	
+
+	// Open the key file 
+	if((fp = fopen(keyName, "r")) == NULL) {
+		printf("Key file not found\n");
+		return;
+	}
+
+	bzero(buf, 512);
+	do {
+		if((readBytes = fread(buf, 1, 512, fp)) < 0) {
+			perror("reading from file");
+		}
+		if(write(sockfd, buf, readBytes) < 0) {
+			perror("writing to client");
+		}
+	} while(readBytes > 0);
+	fclose(fp);
+
+	// check that the message was read in
+	bzero(res, 4);
+	if(read(sockfd, res, 4) < 0) {
+		perror("reading response");
+	}
+	
 
 	close(sockfd);
 
