@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 
 	portNo = atoi(port);
 
-	// Get the sizes of the message
+	// Get the sizes of the message 
 	if(stat(msgName, &buffer) < 0) {
 		perror("getting file");
 		exit(1);
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
 	// Alocate memory 
 	msgFile = (char*) malloc(msgLen * sizeof(char));
 	keyFile = (char*) malloc(keyLen * sizeof(char));
-	cypherText = (char*) malloc((msgLen+1) * sizeof(char));
+	cypherText = (char*) malloc(msgLen * sizeof(char));
 
 	// http://linuxhowtos.org/data/6/client.c
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -190,9 +190,7 @@ int main(int argc, char *argv[]) {
 	if(read(sockfd, buf, 512) < 0) {
 		perror("reading response");
 	}
-	// copy the string in and add a newline for when it goes stipped off again
 	strcpy(cypherText, buf);
-	cypherText[msgLen+1] = '\n';
 
 	fseek(stdout,0,SEEK_END);
 	printf("%s", buf);

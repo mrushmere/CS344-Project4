@@ -2,7 +2,7 @@
 * Mark Rushmere 
 * CS 344
 * Project 4
-* Description: This is an encoder daemon that will encrpy files sent to it.
+* Description: This is an decoder daemon that will encrpy files sent to it.
 * It listend for requests on a port specified by the user. 
 **********************************************************************************/
 
@@ -18,7 +18,7 @@
 // Function Prototypes
 int setSocket(int port);
 int connectSocket(int socket);
-void encode(char *key, char *file, char* cypher, int msgLen);
+void decode(char *key, char *file, char* decoded, int msgLen);
 
 
 
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 		// Allocate memory to recieve the message and the key
 		char *msgBuff = malloc(msgLen * sizeof(char));
 		char *keyBuff = malloc(keyLen * sizeof(char)); 
-		char *cypher = malloc(msgLen * sizeof(char));
+		char *decoded = malloc(msgLen * sizeof(char));
 
 		// send response
 		if(write(clientSocket, conf, 4) < 0) {
@@ -122,11 +122,11 @@ int main(int argc, char *argv[]) {
 
 
 		// call function to convert the text
-		encode(keyBuff, msgBuff, cypher, msgLen);
-		// Send back the cyphertext
+		decode(keyBuff, msgBuff, decoded, msgLen);
+		// Send back the decodedtext
 		fseek(stdout,0,SEEK_END);
 		fseek(stdin,0,SEEK_END);
-		if(write(clientSocket, cypher, 512) < 0) {
+		if(write(clientSocket, decoded, 512) < 0) {
 			perror("reading filename");
 		}
 
@@ -186,38 +186,44 @@ int connectSocket(int socket) {
 	}
 }
 
-void encode(char* key, char* file, char* cypher, int msgLen) {
-	//char *cur;
-	printf("begin encode\n");
-	printf("the file is %s\n", file);
-	printf("the key is: %s\n", key);
-	char temp1, temp2, temp3;
-	int i, let1, let2, letCode;
+void decode(char* key, char* file, char* decoded, int msgLen) {
+
+	int i;
+	printf("file: %s\n", file);
+	printf("key: %s\n", key);
 	for(i = 0; i < msgLen; i++) {
+		char temp1, temp2, temp3;
+		int let1, let2, letCode;
+
 		temp1 = key[i];
 		let1 = (int)temp1;
 		temp2 = file[i];
 		let2 = (int)temp2;
-		if(temp1 == ' ') {
-			let1 = 64;
-		}
-		if(temp2 == ' ') {
+		// transform spaces
+		if(file[i] == ' ') {
 			let2 = 64;
 		}
+		if(key[i] == ' ') {
+			let1 = 64;
+		}
+		
 		let1 = let1 - 64;
 		let2 = let2 - 64;
 
-		letCode = (let1 + let2) % 27;
+		letCode = let2 - let1;
+		if(letCode < 0) {
+			letCode = letCode + 27;
+		}
 		letCode = letCode + 64;
 
 		if(letCode == 64) {
 			letCode = 32;
 		}
-		printf("%d\n", letCode);
+		//printf("%d\n", letCode);
 		temp3 = (char)letCode;
-		cypher[i] = temp3;
+		decoded[i] = temp3;
+
 
 	}
-	//printf("cypher: %s\n", cypher);
 
 }
